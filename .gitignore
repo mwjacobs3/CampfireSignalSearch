@@ -1,0 +1,14 @@
+.env
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+data/seen_results.json
+data/*.csv
+.DS_Store
+.streamlit/secrets.toml
+config.yaml

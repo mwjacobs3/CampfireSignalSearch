@@ -1,0 +1,412 @@
+# CampfireSignalSearch — configuration
+# Copy this file to config.yaml before running.
+# Secrets (Supabase keys, email credentials) stay in environment variables
+# or GitHub Actions Secrets — never commit them here.
+
+# ── Scraper settings ──────────────────────────────────────────────────────────
+scraper:
+  max_age_hours: 48                 # Drop events older than this. 0 = no age filter (use while seeding DB). 24/48/72 are sensible windows for ongoing runs.
+  check_interval_minutes: 240       # Daemon mode only (GitHub Actions uses cron)
+  request_delay: 1.5                # Seconds between HTTP requests
+  timeout: 30
+  user_agent: "Mozilla/5.0 (compatible; CampfireSignalSearch/1.0)"
+  min_relevance_score: 40           # 0 = keep everything. Non-tech sectors (CPG/retail/real estate/…) are filtered categorically, so this gate can stay lower to keep genuine tech leads that lack funding-size/US signals. Raise toward 50–60 to send only the strongest leads.
+
+# ── Territory / ICP filters ───────────────────────────────────────────────────
+# Campfire target: venture-backed SaaS / AI-native companies, roughly
+# $20M-$300M ARR, that have outgrown QuickBooks/Xero or resent NetSuite,
+# Sage Intacct, or SAP.
+territory:
+  country: "United States"
+
+  company_filters:
+    exclude_public_companies: true
+
+    # Size band — Campfire ICP is $20M-$300M ARR. ARR is parsed directly from
+    # press when disclosed (tech press reports it far more than CPG press
+    # reports revenue); total funding raised and employee count are the
+    # fallback proxies. Leads inside the band get a relevance bonus; well
+    # outside it gets a penalty.
+    size_band:
+      arr_min_usd: 20000000            # $20M ARR
+      arr_max_usd: 300000000           # $300M ARR
+      funding_min_usd: 20000000        # $20M total raised (fallback proxy)
+      funding_max_usd: 500000000       # $500M total raised (fallback proxy)
+      employee_min: 50
+      employee_max: 1500
+      employee_hard_max: 3000          # > this gets a stronger penalty
+
+    # Text patterns that indicate a publicly traded company
+    public_company_indicators:
+      - "nasdaq:"
+      - "(nasdaq"
+      - "nyse:"
+      - "(nyse"
+      - "otcbb:"
+      - "s&p 500"
+      - "fortune 500"
+      - "fortune 100"
+
+    # Already-public enterprise tech giants — filtered if mentioned anywhere
+    # (too large / not VC-backed for Campfire). Deliberately uses formal
+    # legal names, NOT bare product words like "SAP" or "NetSuite" — those
+    # are positive stack-mention signals elsewhere, not exclusions.
+    excluded_public_companies:
+      - "meta platforms"
+      - "alphabet inc"
+      - "microsoft corporation"
+      - "salesforce.com, inc"
+      - "workday, inc"
+      - "servicenow, inc"
+      - "adobe inc"
+      - "intuit inc"
+      - "ibm corporation"
+      - "sap se"
+      - "the sage group plc"
+      - "oracle corporation"
+      - "snowflake inc"
+      - "palantir technologies inc"
+
+    # Large platforms — filtered ONLY when they are the SUBJECT of the
+    # article. A scaling SaaS company *migrating off* NetSuite or QuickBooks,
+    # or *onto* Salesforce, is exactly the signal we want, so we don't
+    # blanket-exclude these names.
+    excluded_mega_subjects:
+      - "salesforce"
+      - "hubspot"
+      - "stripe"
+      - "workday"
+      - "servicenow"
+      - "netsuite"
+      - "sage intacct"
+      - "quickbooks"
+      - "xero"
+      - "sap"
+      - "microsoft dynamics"
+
+    # Positive signals that a company is in the right size/stage band
+    target_size_indicators:
+      - "series b"
+      - "series c"
+      - "series d"
+      - "growth round"
+      - "growth equity"
+      - "unicorn"
+      - "high-growth"
+      - "hypergrowth"
+      - "scaling startup"
+      - "venture-backed"
+
+# ── Event classification keywords ─────────────────────────────────────────────
+keywords:
+  funding:
+    - "raises"
+    - "secures"
+    - "closes"
+    - "funding round"
+    - "series a"
+    - "series b"
+    - "series c"
+    - "series d"
+    - "seed round"
+    - "venture capital"
+    - "growth investment"
+    - "growth equity"
+    - "minority stake"
+    - "valued at"
+
+  finance_exec_hire:
+    - "appoints"
+    - "names"
+    - "hires"
+    - "promotes"
+    - "joins as"
+    - "appointed as"
+    # Finance leadership titles
+    - "chief financial officer"
+    - " cfo "
+    - "chief accounting officer"
+    - "vp finance"
+    - "vice president finance"
+    - "vp of finance"
+    - "svp finance"
+    - "evp finance"
+    - "head of finance"
+    - "head of accounting"
+    - "head of fp&a"
+    - "vp fp&a"
+    - "director of finance"
+    - "director of accounting"
+    - "controller"
+    - "corporate controller"
+
+  erp_change_signal:
+    - "outgrew quickbooks"
+    - "outgrowing quickbooks"
+    - "outgrew xero"
+    - "outgrowing xero"
+    - "replacing quickbooks"
+    - "replacing xero"
+    - "migrating off quickbooks"
+    - "migrating off xero"
+    - "graduated from quickbooks"
+    - "implementing netsuite"
+    - "netsuite implementation"
+    - "migrating to netsuite"
+    - "ripping out netsuite"
+    - "replacing netsuite"
+    - "implementing sage intacct"
+    - "sage intacct implementation"
+    - "erp migration"
+    - "erp evaluation"
+    - "erp selection"
+    - "erp rfp"
+    - "new general ledger"
+    - "general ledger migration"
+    - "rip and replace erp"
+    - "selects new erp"
+
+  compliance_signal:
+    - "soc 2"
+    - "soc2"
+    - "soc 2 type ii"
+    - "iso 27001"
+    - "files for ipo"
+    - "files s-1"
+    - "s-1 filing"
+    - "confidentially files"
+    - "ipo readiness"
+    - "first audit"
+    - "annual audit"
+    - "audit-ready financials"
+    - "investor-ready reporting"
+    - "board-ready financials"
+    - "revenue recognition audit"
+
+# ── RSS feed sources ──────────────────────────────────────────────────────────
+# Add / remove feeds here. category is used as a sector hint for articles
+# that don't otherwise match a concrete sector keyword.
+rss_feeds:
+  # ── Startup / VC news (highest-signal for the Campfire ICP) ─────────────────
+  - name: "TechCrunch"
+    url: "https://techcrunch.com/feed/"
+    event_types: ["funding", "finance_exec_hire", "erp_change_signal"]
+    category: "Startup / VC News"
+
+  - name: "VentureBeat"
+    url: "https://venturebeat.com/feed/"
+    event_types: ["funding", "erp_change_signal"]
+    category: "Startup / VC News"
+
+  - name: "Axios Pro Rata"
+    url: "https://www.axios.com/technology/feed"
+    event_types: ["funding"]
+    category: "Startup / VC News"
+
+  - name: "Inc. — Startups"
+    url: "https://www.inc.com/rss/startup.xml"
+    event_types: ["funding", "finance_exec_hire"]
+    category: "Startup / VC News"
+
+  - name: "Fortune Term Sheet"
+    url: "https://fortune.com/feed/fortune-term-sheet/"
+    event_types: ["funding"]
+    category: "Startup / VC News"
+
+  # ── AI / SaaS / Fintech trade press ─────────────────────────────────────────
+  - name: "SaaStr Blog"
+    url: "https://www.saastr.com/feed/"
+    event_types: ["funding", "erp_change_signal", "compliance_signal"]
+    category: "SaaS / Enterprise Software"
+
+  - name: "The SaaS News"
+    url: "https://thesaasnews.com/feed/"
+    event_types: ["funding", "finance_exec_hire"]
+    category: "SaaS / Enterprise Software"
+
+  # ── CFO / Finance / Accounting press (where CFO-side triggers actually break) ─
+  - name: "CFO Dive"
+    url: "https://www.cfodive.com/feeds/news/"
+    event_types: ["finance_exec_hire", "erp_change_signal", "compliance_signal"]
+    category: "Finance & Accounting Press"
+
+  - name: "Accounting Today"
+    url: "https://www.accountingtoday.com/feed"
+    event_types: ["erp_change_signal", "compliance_signal", "finance_exec_hire"]
+    category: "Finance & Accounting Press"
+
+  - name: "Journal of Accountancy"
+    url: "https://www.journalofaccountancy.com/rss.html"
+    event_types: ["erp_change_signal", "compliance_signal"]
+    category: "Finance & Accounting Press"
+
+  - name: "CFO Brew"
+    url: "https://www.cfobrew.com/feed"
+    event_types: ["finance_exec_hire", "erp_change_signal"]
+    category: "Finance & Accounting Press"
+
+  # ── Press Releases (broad) ───────────────────────────────────────────────────
+  - name: "BusinessWire — Technology"
+    url: "https://feed.businesswire.com/rss/home/?rss=G9"
+    event_types: ["funding", "finance_exec_hire", "erp_change_signal", "compliance_signal"]
+    category: "Press Releases"
+
+  - name: "PR Newswire — Technology"
+    url: "https://www.prnewswire.com/rss/technology-latest-news.rss"
+    event_types: ["funding", "finance_exec_hire", "erp_change_signal"]
+    category: "Press Releases"
+
+  - name: "GlobeNewswire — Technology"
+    url: "https://www.globenewswire.com/RssFeed/subjectCode/13"
+    event_types: ["funding", "finance_exec_hire"]
+    category: "Press Releases"
+
+  - name: "EIN Presswire — Technology"
+    url: "https://www.einpresswire.com/rss/technology/"
+    event_types: ["funding", "finance_exec_hire", "erp_change_signal"]
+    category: "Press Releases"
+
+  - name: "AccessWire"
+    url: "https://www.accesswire.com/rss/news"
+    event_types: ["funding", "finance_exec_hire"]
+    category: "Press Releases"
+
+# ── Google News queries (by event type) ──────────────────────────────────────
+google_news_queries:
+  funding:
+    - "SaaS company Series B funding"
+    - "SaaS company Series C funding"
+    - "AI startup Series B funding round"
+    - "AI startup Series C funding round"
+    - "AI-native company raises Series B"
+    - "fintech startup Series B funding"
+    - "cybersecurity startup Series B raises"
+    - "developer tools startup raises Series B"
+    - "vertical SaaS company raises Series C"
+    - "enterprise software startup raises growth round"
+    - "B2B SaaS company raises funding round"
+    - "venture-backed software company Series C"
+    - "startup crosses $50 million ARR"
+    - "startup crosses $100 million ARR"
+    - "SaaS company surpasses $100 million ARR"
+    - "AI company raises growth equity round"
+    - "software startup raises Series D"
+    - "tech company announces Series C funding"
+    - "high-growth SaaS company raises funding"
+    - "unicorn SaaS startup raises funding"
+
+  finance_exec_hire:
+    - '"names" "chief financial officer" SaaS company'
+    - '"appoints" "chief financial officer" startup'
+    - '"hires" "CFO" venture-backed startup'
+    - '"welcomes" "CFO" tech company'
+    - '"names" "VP of Finance" SaaS company'
+    - '"appoints" "VP Finance" tech startup'
+    - '"names" "Chief Accounting Officer" software company'
+    - '"appoints" "Controller" venture-backed startup'
+    - '"names" "Head of Finance" tech startup'
+    - '"appoints" "Head of FP&A" SaaS company'
+    - "SaaS startup hires first CFO"
+    - "tech company names new CFO"
+    - "AI startup appoints chief financial officer"
+    - "venture-backed startup hires VP finance"
+    - "software company promotes controller to CFO"
+
+  erp_change_signal:
+    - '"outgrew QuickBooks" startup'
+    - '"outgrowing QuickBooks" SaaS company'
+    - '"replacing QuickBooks" tech startup'
+    - '"migrating off QuickBooks" software company'
+    - '"outgrew Xero" startup'
+    - '"replacing Xero" SaaS company'
+    - '"implementing NetSuite" tech startup'
+    - '"NetSuite implementation" SaaS company'
+    - '"migrating to NetSuite" software startup'
+    - '"ripping out NetSuite" tech company'
+    - '"selects NetSuite" venture-backed startup'
+    - '"implementing Sage Intacct" SaaS company'
+    - '"Sage Intacct implementation" tech startup'
+    - "startup selects new ERP system"
+    - "SaaS company evaluates new general ledger"
+    - "tech company ERP migration project"
+    - "finance team rips out spreadsheets ERP"
+    - "startup replaces legacy ERP system"
+
+  compliance_signal:
+    - '"SOC 2 Type II" SaaS company'
+    - '"achieves SOC 2" tech startup'
+    - '"completes SOC 2 audit" software company'
+    - "SaaS startup files confidentially for IPO"
+    - "tech company files S-1"
+    - "software startup prepares for IPO"
+    - "venture-backed startup first annual audit"
+    - "SaaS company audit-ready financials"
+    - "tech startup investor-ready reporting"
+    - "software company board-ready financials"
+
+  # Stack-footprint queries — surface companies that name a legacy/entry
+  # accounting system or a modern finance/RevOps tool in their press. These
+  # are the strongest "current stack" signals we can mine from articles.
+  stack_footprint:
+    - '"runs on NetSuite" tech company'
+    - '"currently uses QuickBooks" startup'
+    - '"outgrown its accounting system" SaaS company'
+    - '"multi-entity consolidation" software company'
+    - '"revenue recognition" SaaS company challenge'
+    - '"month-end close" tech company days'
+    - '"manual reconciliation" finance team startup'
+    - '"usage-based billing" SaaS company'
+    - '"subscription billing" complexity startup'
+    - "startup runs on Stripe and Salesforce"
+    - "SaaS company built on Salesforce and HubSpot"
+    - "venture-backed startup uses Ramp and Rippling"
+
+  # Sector-specific funding queries — the news scraper auto-classifies each
+  # result against the keyword sets in `keywords:` above, so an article that
+  # doesn't say "Series B" verbatim can still route correctly.
+  ai_ml:
+    - "AI agent startup raises funding"
+    - "generative AI startup Series B"
+    - "AI copilot company raises Series C"
+    - "machine learning platform raises growth round"
+    - "foundation model company raises funding"
+
+  fintech:
+    - "embedded finance startup raises Series B"
+    - "payments infrastructure company raises funding"
+    - "banking-as-a-service startup Series C"
+    - "digital banking startup raises growth round"
+
+  devtools_infra:
+    - "developer platform startup raises Series B"
+    - "cloud infrastructure startup Series C funding"
+    - "API platform company raises growth round"
+    - "data infrastructure startup raises funding"
+
+  cybersecurity:
+    - "cybersecurity startup raises Series B"
+    - "identity security company raises Series C"
+    - "threat detection startup raises funding"
+
+# ── Website-stack enrichment ──────────────────────────────────────────────────
+# After dedup we fetch each lead's company website and inspect the homepage
+# HTML for tech-stack tells (Stripe Checkout, HubSpot tracking, Vanta/Drata
+# trust badges, Greenhouse/Lever careers embeds, etc.). Any hit is merged
+# into `tech_stack` and re-evaluated against INTEGRATION_KEYWORDS so
+# `integration_match` reflects the true stack rather than just press copy.
+# Best-effort — any fetch failure is silent.
+enrichment:
+  enabled: true
+  timeout_seconds: 6   # per-domain HTTP timeout
+
+# ── Email alerts ──────────────────────────────────────────────────────────────
+# Credentials are injected from environment variables at runtime.
+# Set these in your .env or GitHub Actions Secrets.
+alerts:
+  email:
+    enabled: true
+    smtp_host: ""       # overridden by SMTP_HOST env var
+    smtp_port: 587      # overridden by SMTP_PORT env var
+    sender_email: ""    # overridden by EMAIL_SENDER env var
+    sender_password: "" # overridden by EMAIL_PASSWORD env var
+    recipient_emails: []# overridden by EMAIL_RECIPIENTS env var (comma-separated)
