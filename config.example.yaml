@@ -224,6 +224,16 @@ rss_feeds:
     event_types: ["funding", "finance_exec_hire"]
     category: "SaaS / Enterprise Software"
 
+  # ── Vertical SaaS: Digital Health / HealthTech ──────────────────────────────
+  # Fierce Healthcare is healthcare-industry trade press; most of it (hospitals,
+  # payers, policy) is outside the ICP. Scoped to funding + finance-exec-hire so
+  # the relevance gate keeps the ICP slice: venture-backed digital-health / SaaS
+  # startups raising growth rounds and hiring finance leadership.
+  - name: "Fierce Healthcare"
+    url: "https://www.fiercehealthcare.com/rss/xml"
+    event_types: ["funding", "finance_exec_hire"]
+    category: "Healthcare / Digital Health"
+
   # ── CFO / Finance / Accounting press (where CFO-side triggers actually break) ─
   - name: "CFO Dive"
     url: "https://www.cfodive.com/feeds/news/"
