@@ -432,4 +432,7 @@ alerts:
     smtp_port: 587      # overridden by SMTP_PORT env var
     sender_email: ""    # overridden by EMAIL_SENDER env var
     sender_password: "" # overridden by EMAIL_PASSWORD env var
-    recipient_emails: []# overridden by EMAIL_RECIPIENTS env var (comma-separated)
+    # Baseline recipients always get the digest; any EMAIL_RECIPIENTS env var
+    # (comma-separated) is merged in on top of this list.
+    recipient_emails:
+      - "max@campfire.ai"

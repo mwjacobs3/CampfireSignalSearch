@@ -116,7 +116,10 @@ class AlertManager:
         self.password   = email_cfg.get("sender_password") or os.environ.get("EMAIL_PASSWORD", "")
         raw_recipients  = email_cfg.get("recipient_emails") or []
         env_recips      = [r.strip() for r in os.environ.get("EMAIL_RECIPIENTS", "").split(",") if r.strip()]
-        self.recipients = raw_recipients if raw_recipients else env_recips
+        # Merge config recipients with the EMAIL_RECIPIENTS secret so a baseline
+        # recipient set in config always gets the digest even when the secret is
+        # unset — de-duplicated, order-preserving (config first).
+        self.recipients = list(dict.fromkeys([*raw_recipients, *env_recips]))
         self.smtp_host  = email_cfg.get("smtp_host") or os.environ.get("SMTP_HOST") or "smtp.gmail.com"
         self.smtp_port  = int(email_cfg.get("smtp_port") or os.environ.get("SMTP_PORT") or "587")
 
