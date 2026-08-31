@@ -6,6 +6,10 @@ target-version = "py311"
 line-length = 100
 
 [lint]
-# Default selection is E + F. Ignore line-length so long strings/prints in the
-# scrapers don't fail the check.
+# Explicit selection so the check is deterministic across ruff versions — newer
+# ruff releases widen the default rule set, which would otherwise fail CI on
+# pre-existing style the project never opted into. E (pycodestyle) + F
+# (pyflakes) catch the real bugs: syntax errors, undefined names, unused
+# imports. E501 (line length) is ignored — the scrapers have long strings/prints.
+select = ["E", "F"]
 ignore = ["E501"]

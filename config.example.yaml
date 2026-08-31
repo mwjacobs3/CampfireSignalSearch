@@ -213,6 +213,19 @@ rss_feeds:
     event_types: ["funding"]
     category: "Startup / VC News"
 
+  # ── Dedicated funding-announcement feeds (highest net-new account yield) ─────
+  # These name companies by their raise — the strongest signal for surfacing
+  # ICP-fit accounts (tech / SaaS) that may not be in the CRM yet.
+  - name: "FinSMEs"
+    url: "https://www.finsmes.com/feed"
+    event_types: ["funding", "finance_exec_hire"]
+    category: "Startup / VC News"
+
+  - name: "Crunchbase News"
+    url: "https://news.crunchbase.com/feed/"
+    event_types: ["funding", "finance_exec_hire"]
+    category: "Startup / VC News"
+
   # ── AI / SaaS / Fintech trade press ─────────────────────────────────────────
   - name: "SaaStr Blog"
     url: "https://www.saastr.com/feed/"
@@ -223,6 +236,16 @@ rss_feeds:
     url: "https://thesaasnews.com/feed/"
     event_types: ["funding", "finance_exec_hire"]
     category: "SaaS / Enterprise Software"
+
+  # ── Vertical SaaS: Digital Health / HealthTech ──────────────────────────────
+  # Fierce Healthcare is healthcare-industry trade press; most of it (hospitals,
+  # payers, policy) is outside the ICP. Scoped to funding + finance-exec-hire so
+  # the relevance gate keeps the ICP slice: venture-backed digital-health / SaaS
+  # startups raising growth rounds and hiring finance leadership.
+  - name: "Fierce Healthcare"
+    url: "https://www.fiercehealthcare.com/rss/xml"
+    event_types: ["funding", "finance_exec_hire"]
+    category: "Healthcare / Digital Health"
 
   # ── CFO / Finance / Accounting press (where CFO-side triggers actually break) ─
   - name: "CFO Dive"
@@ -409,4 +432,7 @@ alerts:
     smtp_port: 587      # overridden by SMTP_PORT env var
     sender_email: ""    # overridden by EMAIL_SENDER env var
     sender_password: "" # overridden by EMAIL_PASSWORD env var
-    recipient_emails: []# overridden by EMAIL_RECIPIENTS env var (comma-separated)
+    # Baseline recipients always get the digest; any EMAIL_RECIPIENTS env var
+    # (comma-separated) is merged in on top of this list.
+    recipient_emails:
+      - "max@campfire.ai"
