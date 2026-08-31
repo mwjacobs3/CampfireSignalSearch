@@ -996,7 +996,7 @@ def main() -> None:
             placeholder="All sectors",
         )
         label_to_key = {label: key for key, label in sector_options}
-        selected_sectors = [label_to_key[l] for l in selected_labels]
+        selected_sectors = [label_to_key[label] for label in selected_labels]
         if selected_sectors:
             df = df[df["sector"].isin(selected_sectors)]
 
