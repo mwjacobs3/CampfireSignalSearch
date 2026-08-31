@@ -1,0 +1,11 @@
+# Ruff config for CampfireSignalSearch.
+# Kept intentionally lean: the default rule set (pyflakes + a curated slice of
+# pycodestyle) catches real bugs — undefined names, unused imports, ambiguous
+# identifiers — without drowning the project in style noise.
+target-version = "py311"
+line-length = 100
+
+[lint]
+# Default selection is E + F. Ignore line-length so long strings/prints in the
+# scrapers don't fail the check.
+ignore = ["E501"]
