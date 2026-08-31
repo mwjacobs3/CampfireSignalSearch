@@ -213,6 +213,30 @@ rss_feeds:
     event_types: ["funding"]
     category: "Startup / VC News"
 
+  # ── Dedicated funding-announcement feeds (highest net-new account yield) ─────
+  # These name companies by their raise — the strongest signal for surfacing
+  # ICP-fit accounts (tech / SaaS) that may not be in the CRM yet.
+  - name: "FinSMEs"
+    url: "https://www.finsmes.com/feed"
+    event_types: ["funding", "finance_exec_hire"]
+    category: "Startup / VC News"
+
+  - name: "Crunchbase News"
+    url: "https://news.crunchbase.com/feed/"
+    event_types: ["funding", "finance_exec_hire"]
+    category: "Startup / VC News"
+
+  # ── European tech / SaaS (accounts less likely to be in a US CRM) ───────────
+  - name: "Tech.eu"
+    url: "https://tech.eu/feed/"
+    event_types: ["funding", "finance_exec_hire"]
+    category: "European Tech / SaaS"
+
+  - name: "EU-Startups"
+    url: "https://www.eu-startups.com/feed/"
+    event_types: ["funding", "finance_exec_hire"]
+    category: "European Tech / SaaS"
+
   # ── AI / SaaS / Fintech trade press ─────────────────────────────────────────
   - name: "SaaStr Blog"
     url: "https://www.saastr.com/feed/"
