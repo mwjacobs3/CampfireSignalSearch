@@ -104,6 +104,37 @@ The `.github/workflows/scraper.yml` workflow runs on cron `0 */4 * * *`
    ```
 4. Deploy. Theme + server settings are pre-configured in `.streamlit/config.toml`.
 
+### 6. Account Watch — HubSpot-owned accounts (optional, runs side-by-side)
+
+The scraper above casts a wide **open-web net** for net-new ICP-fit accounts.
+**Account Watch** is a second, independent pipeline for a different goal:
+watching the companies **you already own in HubSpot** for the same four
+trigger-event categories (funding, finance exec hires, ERP-change signals,
+compliance readiness), scoped to just those accounts. It shares the same
+`keywords:` config, Supabase `events` table (tagged `pipeline: account_watch`
+so it's distinguishable in the dashboard), and email digest credentials — it
+just runs on its own schedule and sends its own, separately-labeled digest.
+
+1. In HubSpot: **Settings → Integrations → Private Apps** → create an app
+   with scopes `crm.objects.companies.read` and `crm.objects.owners.read`.
+   Copy the generated access token.
+2. In your repo **Settings → Secrets and variables → Actions**, add:
+
+   | Secret | Required | Description |
+   |---|---|---|
+   | `HUBSPOT_ACCESS_TOKEN` | ✅ | The private-app token from step 1 |
+   | `HUBSPOT_PORTAL_ID` | ⬜ | Your HubSpot portal/hub ID (Settings → Account Setup → Account Defaults) — only used to build "View in HubSpot" links in the digest |
+
+   It reuses `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` and the
+   `EMAIL_*` secrets already set up for the scraper above — no separate
+   email setup needed.
+3. Set which HubSpot owner's accounts to watch in `config.yaml` →
+   `account_watch.owner_email` (defaults to `max@campfire.ai`).
+4. The `.github/workflows/account_watch.yml` workflow runs on cron
+   `0 */4 * * *` (every 4 hours, alongside the ICP scan) and on-demand via
+   **Actions → Campfire Account Watch → Run workflow**.
+5. Run locally with `python -m src.account_watch_main`.
+
 ## Repository layout
 
 ```
@@ -115,21 +146,25 @@ CampfireSignalSearch/
 ├── runtime.txt                      # Python 3.11 pin for Streamlit Cloud
 ├── .env.example
 ├── .streamlit/config.toml           # dashboard theme + server settings
-├── .github/workflows/scraper.yml    # cron: every 4 hours
+├── .github/workflows/scraper.yml    # ICP-scan cron: every 4 hours
+├── .github/workflows/account_watch.yml  # Account Watch cron: every 4 hours
 ├── supabase/
 │   └── schema.sql                  # ⭐ complete idempotent schema — run this one
 └── src/
-    ├── main.py                      # orchestrator + scheduler + Supabase sync
+    ├── main.py                      # ICP-scan orchestrator + scheduler + Supabase sync
+    ├── account_watch_main.py        # Account Watch orchestrator (HubSpot-owned accounts)
+    ├── hubspot_client.py            # minimal HubSpot REST client (owners + owned companies)
     ├── models.py                    # TriggerEvent dataclass
     ├── database.py                  # Supabase client + upserts
-    ├── alerts.py                    # HTML + plain-text email digest
+    ├── alerts.py                    # HTML + plain-text email digest (shared by both pipelines)
     ├── enrichment.py                # website + stack-fingerprint enrichment
     └── scrapers/
         ├── base.py                  # shared scraper helpers + Campfire ICP scoring
         ├── rss_scraper.py           # SaaS/startup/finance trade press
         ├── news_scraper.py          # Google News RSS (no API key)
         ├── funding_feed_scraper.py  # TechCrunch / Crunchbase / VentureBeat / FinSMEs
-        └── exec_hire_scraper.py     # BusinessWire / PR Newswire finance-hire announcements
+        ├── exec_hire_scraper.py     # BusinessWire / PR Newswire finance-hire announcements
+        └── account_watch_scraper.py # targeted per-account search, scoped to owned HubSpot companies
 ```
 
 ## What is the Campfire ICP?

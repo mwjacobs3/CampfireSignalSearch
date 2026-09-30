@@ -555,6 +555,8 @@ def render_event_card(row, event_config) -> None:
     funding_amount = _safe_str(row.get("funding_amount"))
     sector_key = _safe_str(row.get("sector"))
     user_sector = _safe_str(row.get("user_sector"))
+    pipeline = _safe_str(row.get("pipeline")) or "icp_scan"
+    hubspot_company_url = _safe_str(row.get("hubspot_company_url"))
     published = row.get("published_date", "")
 
     website          = _safe_str(row.get("company_website"))
@@ -603,6 +605,14 @@ def render_event_card(row, event_config) -> None:
         f'<span class="sector-badge" style="background:#FFE4D6;color:#B0440D;border-color:#FFD0B6;">'
         f'🎯 {user_sector}</span>'
         if user_sector else ""
+    )
+
+    # Pipeline badge — only shown for Account Watch (HubSpot-owned); the
+    # default ICP-scan pipeline stays badge-free to match prior behavior.
+    pipeline_html = (
+        '<span class="region-badge" style="background:#FFE4D6;color:#B0440D;border-color:#FFD0B6;">'
+        '🧡 Account Watch</span>'
+        if pipeline == "account_watch" else ""
     )
 
     # Region badge: 🇺🇸 US vs 🌍 International vs unknown
@@ -660,6 +670,7 @@ def render_event_card(row, event_config) -> None:
         '<div class="event-card-header">'
         f'<span class="event-type-badge {badge_class}">{event_config["icon"]} {event_config["label"]}</span>'
         f'<span class="status-badge {status_cfg["class"]}">{status_cfg["label"]}</span>'
+        f'{pipeline_html}'
         f'{region_html}'
         f'{sector_html}'
         f'{user_sector_html}'
@@ -698,6 +709,8 @@ def render_event_card(row, event_config) -> None:
                     outreach_parts.append(_link(company_linkedin, "Company"))
                 if founder_linkedin:
                     outreach_parts.append(_link(founder_linkedin, "Founder"))
+                if hubspot_company_url:
+                    outreach_parts.append(f'<a href="{hubspot_company_url}" target="_blank">View in HubSpot</a>')
                 if outreach_parts:
                     enrich_rows.append(
                         '<div class="row"><span class="k">Outreach:</span> '
@@ -952,6 +965,30 @@ def main() -> None:
                 f"total (latest: {overview['latest']}). Widen the *Time Range* "
                 "slider, or check that the scraper is still running."
             )
+        return
+
+    # Pipeline filter — ICP Scan (open web) vs Account Watch (HubSpot-owned).
+    if "pipeline" in df.columns and df["pipeline"].nunique(dropna=True) > 1:
+        st.sidebar.markdown("### Pipeline")
+        pipeline_labels = {
+            "icp_scan": "🌐 ICP Scan (open web)",
+            "account_watch": "🧡 Account Watch (HubSpot-owned)",
+        }
+        available = [p for p in pipeline_labels if (df["pipeline"] == p).any()]
+        selected_pipeline_labels = st.sidebar.multiselect(
+            "Filter by pipeline",
+            options=[pipeline_labels[p] for p in available],
+            default=[],
+            label_visibility="collapsed",
+            placeholder="All pipelines",
+        )
+        label_to_pipeline = {v: k for k, v in pipeline_labels.items()}
+        selected_pipelines = [label_to_pipeline[label] for label in selected_pipeline_labels]
+        if selected_pipelines:
+            df = df[df["pipeline"].isin(selected_pipelines)]
+
+    if df.empty:
+        st.info("📭 No events match the selected pipeline filter.")
         return
 
     # Region filter — Campfire prioritizes US leads but keeps international visible.

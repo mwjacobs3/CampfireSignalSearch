@@ -55,7 +55,7 @@ _HTML_TEMPLATE = """
 </head>
 <body>
   <div class="header">
-    <h1>🔥 Campfire Trigger Events — Campfire ICP</h1>
+    <h1>🔥 {{ heading }}</h1>
     <p>{{ date }} &nbsp;·&nbsp; <strong>{{ total }}</strong> new signals</p>
   </div>
 
@@ -83,6 +83,7 @@ _HTML_TEMPLATE = """
     </div>{% endif %}
     {% if e.legacy_systems %}<div class="company">🗂 Stack: {{ e.legacy_systems|join(', ') }}</div>{% endif %}
     {% if e.company_website %}<div class="company">🔗 <a href="https://{{ e.company_website }}">{{ e.company_website }}</a></div>{% endif %}
+    {% if e.hubspot_company_url %}<div class="company">🧡 <a href="{{ e.hubspot_company_url }}">View in HubSpot</a></div>{% endif %}
     <div class="meta">{{ e.source_name }} &nbsp;·&nbsp; {{ e.published_date.strftime('%b %d, %Y') if e.published_date else '' }}</div>
     {% if e.description %}<div class="summary">{{ e.description[:200] }}{% if e.description|length > 200 %}…{% endif %}</div>{% endif %}
   </div>
@@ -95,7 +96,7 @@ _HTML_TEMPLATE = """
 </html>
 """
 
-_TEXT_TEMPLATE = """CAMPFIRE TRIGGER EVENTS — CAMPFIRE ICP
+_TEXT_TEMPLATE = """{{ heading|upper }}
 {{ date }} | {{ total }} new signals
 {% for etype, meta in categories.items() %}{% set items = grouped[etype] %}{% if items %}
 {{ meta.icon }} {{ meta.label|upper }} ({{ items|length }})
@@ -104,6 +105,7 @@ _TEXT_TEMPLATE = """CAMPFIRE TRIGGER EVENTS — CAMPFIRE ICP
   {{ e.source_name }} | {{ e.published_date.strftime('%b %d, %Y') if e.published_date else '' }}
 {% if e.company_name %}  Company: {{ e.company_name }}{% if e.is_us_company == True %} [US]{% elif e.is_us_company == False %} [{{ e.company_country or 'International' }}]{% endif %}{% endif %}
 {% if e.founder_name %}  Founder: {{ e.founder_name }}{% endif %}
+{% if e.hubspot_company_url %}  HubSpot: {{ e.hubspot_company_url }}{% endif %}
 {% endfor %}{% endif %}{% endfor %}"""
 
 
@@ -123,16 +125,26 @@ class AlertManager:
         self.smtp_host  = email_cfg.get("smtp_host") or os.environ.get("SMTP_HOST") or "smtp.gmail.com"
         self.smtp_port  = int(email_cfg.get("smtp_port") or os.environ.get("SMTP_PORT") or "587")
 
-    def send_alerts(self, events: list[TriggerEvent]) -> int:
+    def send_alerts(
+        self,
+        events: list[TriggerEvent],
+        heading: str = "Campfire Trigger Events — Campfire ICP",
+        subject_label: str = "Campfire Alert",
+    ) -> int:
         if not events:
             return 0
         handlers = 0
         if self.enabled and self.sender and self.recipients:
-            if self._send_email(events):
+            if self._send_email(events, heading=heading, subject_label=subject_label):
                 handlers += 1
         return handlers
 
-    def _send_email(self, events: list[TriggerEvent]) -> bool:
+    def _send_email(
+        self,
+        events: list[TriggerEvent],
+        heading: str = "Campfire Trigger Events — Campfire ICP",
+        subject_label: str = "Campfire Alert",
+    ) -> bool:
         grouped: dict[EventType, list[TriggerEvent]] = {et: [] for et in EventType}
         for e in events:
             grouped[e.event_type].append(e)
@@ -148,14 +160,14 @@ class AlertManager:
         date_str   = datetime.now().strftime("%B %d, %Y %H:%M")
         categories = _CATEGORY_META
 
-        ctx = {"date": date_str, "total": len(events),
+        ctx = {"date": date_str, "total": len(events), "heading": heading,
                "grouped": grouped, "categories": categories}
 
         html = Template(_HTML_TEMPLATE).render(**ctx)
         text = Template(_TEXT_TEMPLATE).render(**ctx)
 
         msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"Campfire Alert — {datetime.now().strftime('%b %d')} ({len(events)} signals)"
+        msg["Subject"] = f"{subject_label} — {datetime.now().strftime('%b %d')} ({len(events)} signals)"
         msg["From"]    = self.sender
         msg["To"]      = ", ".join(self.recipients)
         msg.attach(MIMEText(text, "plain"))

@@ -422,6 +422,23 @@ enrichment:
   enabled: true
   timeout_seconds: 6   # per-domain HTTP timeout
 
+# ── Account Watch (HubSpot-owned accounts) ────────────────────────────────────
+# Runs alongside the open-web ICP scan above, but scoped to the companies you
+# already own in HubSpot rather than the whole web: one targeted Google News
+# query per owned account, checked against the same four trigger-event
+# categories (funding, finance_exec_hire, erp_change_signal, compliance_signal).
+# Reuses the same `keywords:` section above and the same `alerts.email`
+# config/credentials — this just adds a second, separately-labeled digest.
+# Requires HUBSPOT_ACCESS_TOKEN (a HubSpot private-app token with
+# crm.objects.companies.read + crm.objects.owners.read scopes) — see README.
+account_watch:
+  enabled: true
+  owner_email: "max@campfire.ai"    # HubSpot owner whose companies to watch
+  max_companies: 500                # safety cap on how many owned companies to fetch
+  results_per_company: 5            # Google News results considered per company
+  max_age_hours: 72                 # drop signals older than this. 0 = no age filter
+  min_relevance_score: 0            # accounts are pre-qualified CRM records, so keep everything by default
+
 # ── Email alerts ──────────────────────────────────────────────────────────────
 # Credentials are injected from environment variables at runtime.
 # Set these in your .env or GitHub Actions Secrets.

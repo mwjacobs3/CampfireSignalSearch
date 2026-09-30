@@ -43,7 +43,7 @@ EXPECTED_EVENT_COLUMNS = [
     "source_name", "source_url", "published_date", "discovered_at",
     "person_name", "person_title", "founder_name", "funding_amount",
     "funding_round", "matched_keywords", "relevance_score", "query",
-    "lead_status",
+    "lead_status", "pipeline", "hubspot_company_id", "hubspot_company_url",
 ]
 
 

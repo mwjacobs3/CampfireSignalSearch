@@ -69,7 +69,12 @@ ALTER TABLE public.events
   ADD COLUMN IF NOT EXISTS integration_match TEXT,       -- comma-separated names
   ADD COLUMN IF NOT EXISTS billing_model     TEXT,        -- SUBSCRIPTION | USAGE_BASED | SUBSCRIPTION_PLUS_USAGE
   -- Sales-applied tag (separate from auto-detected `sector`)
-  ADD COLUMN IF NOT EXISTS user_sector       TEXT;
+  ADD COLUMN IF NOT EXISTS user_sector       TEXT,
+  -- Pipeline provenance: "icp_scan" (open-web ICP net) or "account_watch"
+  -- (targeted search scoped to owned HubSpot accounts)
+  ADD COLUMN IF NOT EXISTS pipeline            TEXT NOT NULL DEFAULT 'icp_scan',
+  ADD COLUMN IF NOT EXISTS hubspot_company_id  TEXT,
+  ADD COLUMN IF NOT EXISTS hubspot_company_url TEXT;
 
 -- ── 3. Source status table ───────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.source_status (
@@ -100,6 +105,8 @@ CREATE INDEX IF NOT EXISTS idx_events_billing_model   ON public.events (billing_
 CREATE INDEX IF NOT EXISTS idx_events_founding_year   ON public.events (founding_year)   WHERE founding_year   IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_events_user_sector     ON public.events (user_sector)     WHERE user_sector     IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_events_integration_match ON public.events (integration_match) WHERE integration_match IS NOT NULL AND integration_match <> '';
+CREATE INDEX IF NOT EXISTS idx_events_pipeline           ON public.events (pipeline);
+CREATE INDEX IF NOT EXISTS idx_events_hubspot_company_id ON public.events (hubspot_company_id) WHERE hubspot_company_id IS NOT NULL AND hubspot_company_id <> '';
 
 -- ── 5. Row Level Security + policies ──────────────────────────────────────────
 ALTER TABLE public.events        ENABLE ROW LEVEL SECURITY;

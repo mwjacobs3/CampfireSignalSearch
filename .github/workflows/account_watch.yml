@@ -1,0 +1,44 @@
+name: Campfire Account Watch (HubSpot-owned accounts)
+
+on:
+  schedule:
+    - cron: '0 */4 * * *'   # every 4 hours, alongside the ICP scan
+  workflow_dispatch:
+
+jobs:
+  account-watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create config.yaml from example
+        run: cp config.example.yaml config.yaml
+
+      - name: Run Account Watch
+        env:
+          # HubSpot — private-app token scoped to companies + owners read
+          HUBSPOT_ACCESS_TOKEN: ${{ secrets.HUBSPOT_ACCESS_TOKEN }}
+          HUBSPOT_PORTAL_ID:    ${{ secrets.HUBSPOT_PORTAL_ID }}
+
+          # Supabase — same project/table as the ICP scan
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+          # Email digest — same credentials/recipients as the ICP scan
+          EMAIL_SENDER:     ${{ secrets.EMAIL_SENDER }}
+          EMAIL_PASSWORD:   ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_RECIPIENTS: ${{ secrets.EMAIL_RECIPIENTS }}
+          SMTP_HOST:        ${{ secrets.SMTP_HOST }}
+          SMTP_PORT:        ${{ secrets.SMTP_PORT }}
+        run: python -m src.account_watch_main

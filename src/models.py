@@ -86,6 +86,12 @@ class TriggerEvent:
     lead_status: str = "NEW"
     notes: Optional[str] = None
 
+    # Pipeline provenance — "icp_scan" (open-web ICP net) or "account_watch"
+    # (targeted search scoped to your owned HubSpot accounts)
+    pipeline: str = "icp_scan"
+    hubspot_company_id: Optional[str] = None
+    hubspot_company_url: Optional[str] = None
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
@@ -126,4 +132,7 @@ class TriggerEvent:
             "relevance_score": round(self.relevance_score, 2),
             "query": self.query or "",
             "lead_status": self.lead_status,
+            "pipeline": self.pipeline,
+            "hubspot_company_id": self.hubspot_company_id or "",
+            "hubspot_company_url": self.hubspot_company_url or "",
         }
