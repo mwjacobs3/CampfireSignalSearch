@@ -21,7 +21,7 @@ import yaml
 
 from .alerts import AlertManager
 from .database import SupabaseManager
-from .enrichment import enrich_event
+from .enrichment import enrich_event, enrich_hiring_signal
 from .models import TriggerEvent
 from .scrapers import ExecHireScraper, FundingFeedScraper, GoogleNewsScraper, RSSScraper
 
@@ -135,6 +135,7 @@ class TriggerEventMonitor:
                 "Mozilla/5.0 (compatible; CampfireSignalSearch/1.0)",
             )
             enriched_count = 0
+            hiring_count = 0
             for event in new_events:
                 before = len(event.integration_match or [])
                 try:
@@ -144,7 +145,19 @@ class TriggerEventMonitor:
                     continue
                 if len(event.integration_match or []) > before:
                     enriched_count += 1
+
+                # Independent pass: check the prospect's public Greenhouse/
+                # Lever/Ashby job board for open accounting/finance reqs — a
+                # real-time hiring signal, separate from anything press-derived.
+                try:
+                    enrich_hiring_signal(event, timeout=timeout, user_agent=ua)
+                except Exception as exc:
+                    print(f"    Hiring-signal check skipped for {event.company_name or event.url}: {exc}")
+                    continue
+                if event.hiring_finance_roles:
+                    hiring_count += 1
             print(f"  Integrations +   : {enriched_count} events gained tech-stack hits")
+            print(f"  Hiring finance   : {hiring_count} events found an open accounting/finance req")
 
         # Save + alert
         saved = 0
@@ -261,6 +274,8 @@ class TriggerEventMonitor:
                 fit.append(f"stack:{'/'.join(e.integration_match[:3])}")
             if e.billing_model:
                 fit.append(e.billing_model.lower().replace("_", " "))
+            if e.hiring_finance_roles:
+                fit.append(f"hiring:{'/'.join(e.open_finance_roles[:3])}")
             if fit:
                 print(f"     Fit     : {', '.join(fit)}")
             print(f"     Score   : {e.relevance_score:.0f}/100")

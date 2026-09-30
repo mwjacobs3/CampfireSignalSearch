@@ -33,10 +33,11 @@ class GoogleNewsScraper(BaseScraper):
         self.source_statuses = []
 
         type_map = {
-            "funding":            EventType.FUNDING,
-            "finance_exec_hire":  EventType.FINANCE_EXEC_HIRE,
-            "erp_change_signal":  EventType.ERP_CHANGE_SIGNAL,
-            "compliance_signal":  EventType.COMPLIANCE_SIGNAL,
+            "funding":              EventType.FUNDING,
+            "finance_exec_hire":    EventType.FINANCE_EXEC_HIRE,
+            "erp_change_signal":    EventType.ERP_CHANGE_SIGNAL,
+            "compliance_signal":    EventType.COMPLIANCE_SIGNAL,
+            "finance_team_hiring":  EventType.FINANCE_TEAM_HIRING_SIGNAL,
         }
 
         for type_key, queries in self.queries_by_type.items():

@@ -140,6 +140,45 @@ keywords:
     - "controller"
     - "corporate controller"
 
+  # Broader accounting/finance team growth — NOT just the exec seat. A company
+  # opening several accounting/finance reqs is scaling finance ops and is a
+  # buying trigger in its own right, even before it names a CFO.
+  finance_team_hiring:
+    - "is hiring"
+    - "growing its finance team"
+    - "growing our finance team"
+    - "expanding its finance team"
+    - "expanding its accounting team"
+    - "building out its finance team"
+    - "building out our finance team"
+    - "scaling finance operations"
+    - "scaling its finance team"
+    - "adds finance roles"
+    - "adds accounting roles"
+    - "hiring accountants"
+    - "hiring for its finance team"
+    - "growing accounting department"
+    # Non-exec finance/accounting titles
+    - "staff accountant"
+    - "senior accountant"
+    - "accounting manager"
+    - "accounting supervisor"
+    - "accounts payable"
+    - "accounts receivable"
+    - "ap specialist"
+    - "ar specialist"
+    - "payroll specialist"
+    - "payroll manager"
+    - "revenue accountant"
+    - "technical accounting manager"
+    - "fp&a analyst"
+    - "financial analyst"
+    - "finance manager"
+    - "treasury analyst"
+    - "tax accountant"
+    - "billing specialist"
+    - "bookkeeper"
+
   erp_change_signal:
     - "outgrew quickbooks"
     - "outgrowing quickbooks"
@@ -250,22 +289,22 @@ rss_feeds:
   # ── CFO / Finance / Accounting press (where CFO-side triggers actually break) ─
   - name: "CFO Dive"
     url: "https://www.cfodive.com/feeds/news/"
-    event_types: ["finance_exec_hire", "erp_change_signal", "compliance_signal"]
+    event_types: ["finance_exec_hire", "erp_change_signal", "compliance_signal", "finance_team_hiring"]
     category: "Finance & Accounting Press"
 
   - name: "Accounting Today"
     url: "https://www.accountingtoday.com/feed"
-    event_types: ["erp_change_signal", "compliance_signal", "finance_exec_hire"]
+    event_types: ["erp_change_signal", "compliance_signal", "finance_exec_hire", "finance_team_hiring"]
     category: "Finance & Accounting Press"
 
   - name: "Journal of Accountancy"
     url: "https://www.journalofaccountancy.com/rss.html"
-    event_types: ["erp_change_signal", "compliance_signal"]
+    event_types: ["erp_change_signal", "compliance_signal", "finance_team_hiring"]
     category: "Finance & Accounting Press"
 
   - name: "CFO Brew"
     url: "https://www.cfobrew.com/feed"
-    event_types: ["finance_exec_hire", "erp_change_signal"]
+    event_types: ["finance_exec_hire", "erp_change_signal", "finance_team_hiring"]
     category: "Finance & Accounting Press"
 
   # ── Press Releases (broad) ───────────────────────────────────────────────────
@@ -334,6 +373,20 @@ google_news_queries:
     - "AI startup appoints chief financial officer"
     - "venture-backed startup hires VP finance"
     - "software company promotes controller to CFO"
+
+  finance_team_hiring:
+    - '"is hiring" "senior accountant" SaaS company'
+    - '"is hiring" "staff accountant" startup'
+    - "startup growing its finance and accounting team"
+    - "SaaS company expands accounting team"
+    - "tech company hiring staff accountant"
+    - "venture-backed startup builds out finance team"
+    - "SaaS company adds FP&A analyst"
+    - "startup hiring accounts payable specialist"
+    - "tech company hiring payroll manager"
+    - "software company hiring revenue accountant"
+    - "SaaS startup hiring accounting manager"
+    - "venture-backed company scaling finance operations"
 
   erp_change_signal:
     - '"outgrew QuickBooks" startup'

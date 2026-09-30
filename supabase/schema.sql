@@ -19,7 +19,7 @@
 -- ── 1. Events table ──────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.events (
     id              TEXT PRIMARY KEY,                 -- sha256(url|title)
-    event_type      TEXT NOT NULL,                    -- funding | finance_exec_hire | erp_change_signal | compliance_signal
+    event_type      TEXT NOT NULL,                    -- funding | finance_exec_hire | erp_change_signal | compliance_signal | finance_team_hiring_signal
     title           TEXT NOT NULL,
     company_name    TEXT,
     company_location TEXT,
@@ -68,6 +68,10 @@ ALTER TABLE public.events
   ADD COLUMN IF NOT EXISTS entry_stack_mention BOOLEAN DEFAULT false,
   ADD COLUMN IF NOT EXISTS integration_match TEXT,       -- comma-separated names
   ADD COLUMN IF NOT EXISTS billing_model     TEXT,        -- SUBSCRIPTION | USAGE_BASED | SUBSCRIPTION_PLUS_USAGE
+  -- Careers-page / ATS job-board enrichment (Greenhouse/Lever/Ashby)
+  ADD COLUMN IF NOT EXISTS hiring_finance_roles BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS open_finance_roles   TEXT,     -- comma-separated open job titles
+  ADD COLUMN IF NOT EXISTS careers_page_url     TEXT,
   -- Sales-applied tag (separate from auto-detected `sector`)
   ADD COLUMN IF NOT EXISTS user_sector       TEXT;
 
@@ -100,6 +104,7 @@ CREATE INDEX IF NOT EXISTS idx_events_billing_model   ON public.events (billing_
 CREATE INDEX IF NOT EXISTS idx_events_founding_year   ON public.events (founding_year)   WHERE founding_year   IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_events_user_sector     ON public.events (user_sector)     WHERE user_sector     IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_events_integration_match ON public.events (integration_match) WHERE integration_match IS NOT NULL AND integration_match <> '';
+CREATE INDEX IF NOT EXISTS idx_events_hiring_finance    ON public.events (hiring_finance_roles) WHERE hiring_finance_roles IS TRUE;
 
 -- ── 5. Row Level Security + policies ──────────────────────────────────────────
 ALTER TABLE public.events        ENABLE ROW LEVEL SECURITY;
