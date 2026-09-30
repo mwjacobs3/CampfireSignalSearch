@@ -335,6 +335,29 @@ MODERN_COMPETITOR_SYSTEMS = [
     "ledge.co", "digits accounting",
 ]
 
+# ── Open finance/accounting job titles (careers-page / ATS enrichment) ──────
+# Matched against real job-posting titles pulled from a prospect's public
+# Greenhouse/Lever/Ashby job board (see enrichment.py). Broader than the
+# exec-hire title list — an open req for a Staff Accountant or AP Specialist
+# is a headcount-growth signal in its own right, not just the CFO seat.
+FINANCE_ROLE_TITLE_KEYWORDS = [
+    "chief financial officer", "cfo", "chief accounting officer",
+    "vp finance", "vp of finance", "vice president of finance",
+    "vice president, finance", "svp finance", "evp finance",
+    "head of finance", "head of accounting", "head of fp&a",
+    "director of finance", "director of accounting",
+    "finance director", "finance manager",
+    "controller", "corporate controller", "assistant controller",
+    "accounting manager", "accounting supervisor",
+    "staff accountant", "senior accountant", "revenue accountant",
+    "technical accounting", "tax accountant", "tax manager",
+    "accounts payable", "accounts receivable", "ap specialist", "ar specialist",
+    "payroll specialist", "payroll manager", "payroll coordinator",
+    "fp&a", "financial planning and analysis", "financial analyst",
+    "treasury analyst", "treasury manager", "billing specialist",
+    "billing manager", "bookkeeper",
+]
+
 # ── Billing-model detection ──────────────────────────────────────────────────
 # Billing complexity (subscription, usage-based, or both) is core to
 # Campfire's revenue-automation wedge — the equivalent of "channel mix" for a
@@ -556,6 +579,7 @@ class BaseScraper(ABC):
         self.kw_finance_hire = [k.lower() for k in keywords.get("finance_exec_hire", [])]
         self.kw_erp_change   = [k.lower() for k in keywords.get("erp_change_signal", [])]
         self.kw_compliance   = [k.lower() for k in keywords.get("compliance_signal", [])]
+        self.kw_finance_team_hiring = [k.lower() for k in keywords.get("finance_team_hiring", [])]
 
         filters = config.get("territory", {}).get("company_filters", {})
         self.exclude_public = filters.get("exclude_public_companies", True)
@@ -863,6 +887,7 @@ class BaseScraper(ABC):
             EventType.ERP_CHANGE_SIGNAL: sum(1 for k in self.kw_erp_change   if k in text),
             EventType.FUNDING:           sum(1 for k in self.kw_funding      if k in text),
             EventType.COMPLIANCE_SIGNAL: sum(1 for k in self.kw_compliance   if k in text),
+            EventType.FINANCE_TEAM_HIRING_SIGNAL: sum(1 for k in self.kw_finance_team_hiring if k in text),
         }
         best = max(scores, key=lambda e: scores[e])
         return best if scores[best] > 0 else EventType.OTHER
@@ -873,6 +898,7 @@ class BaseScraper(ABC):
             EventType.FINANCE_EXEC_HIRE: self.kw_finance_hire,
             EventType.ERP_CHANGE_SIGNAL: self.kw_erp_change,
             EventType.COMPLIANCE_SIGNAL: self.kw_compliance,
+            EventType.FINANCE_TEAM_HIRING_SIGNAL: self.kw_finance_team_hiring,
         }
         kws = mapping.get(event_type, [])
         return [k for k in kws if k in text]

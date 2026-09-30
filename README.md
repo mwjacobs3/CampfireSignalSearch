@@ -5,12 +5,13 @@ so you can find accounts to reach out to. Campfire is the AI-native ERP and
 general ledger for venture-backed SaaS/AI companies that have outgrown
 QuickBooks or Xero and resent NetSuite, Sage Intacct, or SAP.
 
-Monitors four categories every 4 hours:
+Monitors five categories every 4 hours:
 
 | 💰 | **Funding Rounds** — Series B/C/D+ raises at SaaS/AI companies |
 | 👤 | **Finance Leadership Hires** — new CFO / VP Finance / Controller hires |
 | 🔧 | **ERP / Accounting-Stack Change Signals** — outgrowing QuickBooks/Xero, evaluating or ripping out NetSuite/Sage Intacct/SAP |
 | 📋 | **Audit / Compliance Readiness** — SOC 2, IPO/S-1 filings, first audit |
+| 🧑‍💼 | **Finance / Accounting Team Hiring** — press coverage of a growing finance team, *plus* real open reqs (Staff Accountant, AP/AR, Payroll, FP&A, …) found on the company's own public job board |
 
 Results land in **Supabase**, email **digests ship every 4 hours**, and a
 **Streamlit dashboard** lets you triage leads (mark as Added to Lead List,
@@ -151,6 +152,9 @@ adapted from) — they're:
 - A **new finance leader** (CFO, VP Finance, Controller, Head of FP&A) — the
   single highest-signal trigger, since a new hire almost always re-evaluates
   the accounting stack in their first 90 days.
+- A **growing finance/accounting team below the exec seat** — open reqs for
+  Staff/Senior Accountant, AP/AR, Payroll, FP&A Analyst, or Accounting Manager
+  signal scaling finance ops even before a new CFO is named.
 - **Named legacy/entry systems** in press or job copy — NetSuite, Sage
   Intacct, SAP, QuickBooks, Xero — especially alongside "outgrew," "ripping
   out," "migrating off," or "implementing" language.
@@ -182,6 +186,7 @@ Each event is parsed on three axes so sales can qualify before clicking through:
 | **Outreach** | `company_website` · `company_linkedin` · `founder_linkedin` · `hq_city` · `hq_state` |
 | **Viability** | `founding_year` · `employee_count` · `total_funding` (cumulative raised) · `arr` (when disclosed) |
 | **Campfire fit** | `erp_pain_signal` · `legacy_erp_mention` · `entry_stack_mention` · `integration_match` · `billing_model` |
+| **Hiring signal** | `hiring_finance_roles` · `open_finance_roles` · `careers_page_url` |
 
 | Signal | Detects | Score bonus |
 |---|---|---|
@@ -193,6 +198,24 @@ Each event is parsed on three axes so sales can qualify before clicking through:
 
 An ERP-change story that also names the legacy/entry system being replaced
 gets an additional bonus — the Campfire sweet spot.
+
+### Careers-page / job-board enrichment (best-effort, no API key needed)
+
+For every fit lead that clears the ICP filters, we also check the company's
+own public Greenhouse/Lever/Ashby job board for open accounting/finance reqs
+(Staff Accountant, AP/AR, Payroll, FP&A Analyst, Controller, …). Unlike
+LinkedIn or Indeed, these ATS boards are unauthenticated JSON APIs meant to
+power a company's own careers widget, so they don't block bots — we get a
+real, current headcount signal instead of relying on press coverage, which
+almost never reports individual-contributor hires.
+
+The board is found by scanning the homepage HTML already fetched for stack
+enrichment (below) for a `boards.greenhouse.io` / `jobs.lever.co` /
+`jobs.ashbyhq.com` link; if none is embedded there, a few common `/careers`
+paths are probed as a fallback. Any hit sets `hiring_finance_roles = true`,
+records the matched titles in `open_finance_roles`, and adds a relevance-score
+bonus — same best-effort, try/except-wrapped pattern as the rest of
+enrichment, so a missing board or failed fetch never blocks ingestion.
 
 ### Website-stack enrichment (best-effort, no API key needed)
 
@@ -257,8 +280,9 @@ Presswire/AccessWire (technology categories).
 
 Every query is expanded to a Google News RSS feed. Grouped by event type:
 funding, finance leadership hires, ERP/accounting-stack change signals,
-audit/compliance readiness, plus a stack-footprint bucket (companies naming
-a legacy/entry system or a modern finance/RevOps tool) and sector-specific
+audit/compliance readiness, finance/accounting team hiring, plus a
+stack-footprint bucket (companies naming a legacy/entry system or a modern
+finance/RevOps tool) and sector-specific
 funding queries (AI/ML, fintech, dev tools, cybersecurity).
 
 ### 3. Funding feeds (`FundingFeedScraper`)

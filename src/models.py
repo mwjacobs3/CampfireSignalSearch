@@ -11,6 +11,7 @@ class EventType(Enum):
     FINANCE_EXEC_HIRE   = "finance_exec_hire"     # New CFO / VP Finance / Controller hire
     ERP_CHANGE_SIGNAL   = "erp_change_signal"     # Outgrowing QuickBooks/Xero, evaluating/ripping out an ERP
     COMPLIANCE_SIGNAL   = "compliance_signal"     # SOC 2, IPO/S-1, first audit — investor/audit-ready reporting need
+    FINANCE_TEAM_HIRING_SIGNAL = "finance_team_hiring_signal"  # Growing accounting/finance team (not just the exec seat)
     OTHER                = "other"
 
 
@@ -65,6 +66,11 @@ class TriggerEvent:
     integration_match: list = field(default_factory=list)  # finance/RevOps stack products mentioned
     billing_model: Optional[str] = None        # "SUBSCRIPTION" | "USAGE_BASED" | "SUBSCRIPTION_PLUS_USAGE"
 
+    # Careers-page / job-board enrichment (Greenhouse/Lever/Ashby)
+    hiring_finance_roles: bool = False          # true if an open accounting/finance req was found
+    open_finance_roles: list = field(default_factory=list)   # matched open job titles, e.g. "Senior Accountant"
+    careers_page_url: Optional[str] = None      # public job-board URL checked (Greenhouse/Lever/Ashby)
+
     # Article body
     description: Optional[str] = None
 
@@ -112,6 +118,9 @@ class TriggerEvent:
             "entry_stack_mention": self.entry_stack_mention,
             "integration_match": ",".join(self.integration_match),
             "billing_model": self.billing_model or "",
+            "hiring_finance_roles": self.hiring_finance_roles,
+            "open_finance_roles": ",".join(self.open_finance_roles),
+            "careers_page_url": self.careers_page_url or "",
             "description": (self.description or "")[:2000],
             "source_name": self.source_name or "",
             "source_url": self.url,

@@ -119,6 +119,7 @@ st.markdown(
     .badge-hire       { background: #EBE5FA; color: #4C1D95; }
     .badge-erp        { background: #E0EAFB; color: #1E3A8A; }
     .badge-compliance { background: #E8F5EC; color: #0F5132; }
+    .badge-hiring     { background: #FEF3C7; color: #854D0E; }
     .badge-other      { background: #EEEEEA; color: #3F3F3F; }
 
     .status-badge {
@@ -156,6 +157,7 @@ st.markdown(
     .fit-entry   { background: #FEF3C7; color: #854D0E; }    /* QuickBooks/Xero */
     .fit-integration { background: #D1FAE5; color: #065F46; }/* stack match */
     .fit-billing { background: #F3F1EC; color: var(--cf-ink-2); border: 1px solid var(--cf-border); }
+    .fit-hiring  { background: #FEF3C7; color: #854D0E; }    /* open finance/accounting req */
 
     .enrich-panel {
         background: #FBF9F6; border: 1px solid var(--cf-border);
@@ -259,6 +261,15 @@ EVENT_TYPES = {
         "icon": "📋",
         "badge_class": "badge-compliance",
         "bg_color": "#dcfce7",
+    },
+    "finance_team_hiring_signal": {
+        "label": "Finance Hiring",
+        "full_label": "Finance / Accounting Team Hiring",
+        "color": "#d97706",
+        "gradient": "linear-gradient(135deg, #f59e0b 0%, #b45309 100%)",
+        "icon": "🧑‍💼",
+        "badge_class": "badge-hiring",
+        "bg_color": "#fef3c7",
     },
     "other": {
         "label": "Other",
@@ -579,6 +590,9 @@ def render_event_card(row, event_config) -> None:
     entry_stack      = _safe_bool(row.get("entry_stack_mention"))
     integration_raw  = _safe_str(row.get("integration_match"))
     billing_model    = _safe_str(row.get("billing_model"))
+    hiring_finance   = _safe_bool(row.get("hiring_finance_roles"))
+    open_roles_raw   = _safe_str(row.get("open_finance_roles"))
+    careers_page_url = _safe_str(row.get("careers_page_url"))
 
     date_display = ""
     if published:
@@ -633,6 +647,11 @@ def render_event_card(row, event_config) -> None:
             "SUBSCRIPTION_PLUS_USAGE": "🔄 Sub + Usage",
         }.get(billing_model, billing_model)
         fit_parts.append(f'<span class="fit-badge fit-billing">{billing_label}</span>')
+    if hiring_finance:
+        open_role_count = len([r for r in open_roles_raw.split(",") if r.strip()])
+        fit_parts.append(
+            f'<span class="fit-badge fit-hiring">🧑‍💼 Hiring Finance ({open_role_count})</span>'
+        )
     fit_html = "".join(fit_parts)
 
     # Supplemental lines stack: founder (if present), then hire/funding/location.
@@ -742,6 +761,13 @@ def render_event_card(row, event_config) -> None:
                     )
                     enrich_rows.append(
                         f'<div class="row"><span class="k">Campfire-adjacent stack:</span> {integrations}</div>'
+                    )
+                if open_roles_raw:
+                    open_roles = ", ".join(r.strip() for r in open_roles_raw.split(",") if r.strip())
+                    careers_link = f" ({_link(careers_page_url, 'job board')})" if careers_page_url else ""
+                    enrich_rows.append(
+                        f'<div class="row"><span class="k">Open finance/accounting roles:</span> '
+                        f'{open_roles}{careers_link}</div>'
                     )
 
                 if enrich_rows:
@@ -891,8 +917,9 @@ def main() -> None:
         '<div class="eyebrow">Campfire · Sales Intelligence</div>'
         '<h1>Campfire Trigger Events</h1>'
         '<p>Venture-backed SaaS and AI company signals — funding rounds, finance '
-        'leadership hires, ERP/accounting-stack change signals, and audit/compliance '
-        'readiness — mapped to Campfire’s ideal customer profile.</p>'
+        'leadership hires, ERP/accounting-stack change signals, audit/compliance '
+        'readiness, and open accounting/finance reqs on public job boards — mapped '
+        'to Campfire’s ideal customer profile.</p>'
         '</div>'
     )
     st.markdown(hero_html, unsafe_allow_html=True)
@@ -1081,6 +1108,14 @@ def main() -> None:
             df = df[
                 df["integration_match"].fillna("").astype(str).str.strip().ne("")
             ]
+    if not df.empty and "hiring_finance_roles" in df.columns:
+        hiring_count = int(df["hiring_finance_roles"].fillna(False).astype(bool).sum())
+        if st.sidebar.checkbox(
+            f"🧑‍💼 Only finance-hiring leads ({hiring_count})",
+            value=False,
+            help="Company has an open accounting/finance req on its public Greenhouse/Lever/Ashby job board.",
+        ):
+            df = df[df["hiring_finance_roles"].fillna(False).astype(bool)]
 
     if df.empty:
         st.info("📭 No events match the selected Campfire-fit signal filters.")
@@ -1136,7 +1171,7 @@ def main() -> None:
         top_key = df["sector"].replace("", pd.NA).dropna().value_counts().idxmax()
         top_sector_label = SECTOR_LABELS.get(top_key, top_key)
 
-    col1, col2, col3, col4, col5 = st.columns(5)
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
     with col1:
         render_metric_card("📊", len(df), "Total Signals", "#1A1207")
     with col2:
@@ -1151,6 +1186,13 @@ def main() -> None:
             type_counts.get("erp_change_signal", 0) + type_counts.get("compliance_signal", 0),
             "ERP / Compliance",
             "#1E3A8A",
+        )
+    with col6:
+        render_metric_card(
+            "🧑‍💼",
+            type_counts.get("finance_team_hiring_signal", 0),
+            "Finance Team Hiring",
+            "#D97706",
         )
 
     st.sidebar.markdown("---")
@@ -1183,12 +1225,14 @@ def main() -> None:
         n_hire    = len(new_df[new_df["event_type"] == "finance_exec_hire"])
         n_erp     = len(new_df[new_df["event_type"] == "erp_change_signal"])
         n_comp    = len(new_df[new_df["event_type"] == "compliance_signal"])
+        n_team_hire = len(new_df[new_df["event_type"] == "finance_team_hiring_signal"])
 
-        tab_funding, tab_hire, tab_erp, tab_comp = st.tabs([
+        tab_funding, tab_hire, tab_erp, tab_comp, tab_team_hire = st.tabs([
             f"💰 Funding ({n_funding})",
             f"👤 Finance Hires ({n_hire})",
             f"🔧 ERP Change ({n_erp})",
             f"📋 Compliance ({n_comp})",
+            f"🧑‍💼 Finance Team Hiring ({n_team_hire})",
         ])
 
         with tab_funding:
@@ -1199,6 +1243,10 @@ def main() -> None:
             render_event_section(new_df, "erp_change_signal", EVENT_TYPES["erp_change_signal"])
         with tab_comp:
             render_event_section(new_df, "compliance_signal", EVENT_TYPES["compliance_signal"])
+        with tab_team_hire:
+            render_event_section(
+                new_df, "finance_team_hiring_signal", EVENT_TYPES["finance_team_hiring_signal"]
+            )
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -1248,6 +1296,7 @@ def main() -> None:
             "founding_year", "arr", "total_funding", "billing_model",
             "erp_pain_signal", "legacy_erp_mention", "entry_stack_mention",
             "integration_match", "legacy_systems", "tech_stack",
+            "hiring_finance_roles", "open_finance_roles", "careers_page_url",
             "company_website", "title", "published_date", "lead_status",
         ]
         available = [c for c in cols if c in df.columns]
@@ -1271,6 +1320,9 @@ def main() -> None:
             "integration_match": "Stack Match",
             "legacy_systems": "Legacy Systems",
             "tech_stack": "Tech Stack",
+            "hiring_finance_roles": "Hiring Finance",
+            "open_finance_roles": "Open Finance Roles",
+            "careers_page_url": "Job Board",
             "company_website": "Website",
             "title": "Title",
             "published_date": "Published",
