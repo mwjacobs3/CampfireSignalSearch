@@ -115,25 +115,33 @@ compliance readiness), scoped to just those accounts. It shares the same
 so it's distinguishable in the dashboard), and email digest credentials — it
 just runs on its own schedule and sends its own, separately-labeled digest.
 
-1. In HubSpot: **Settings → Integrations → Private Apps** → create an app
-   with scopes `crm.objects.companies.read` and `crm.objects.owners.read`.
-   Copy the generated access token.
-2. In your repo **Settings → Secrets and variables → Actions**, add:
+No HubSpot API credentials needed — the owned-company list comes from a CSV
+you export yourself, so this stays a fully unattended cron job:
+
+1. In HubSpot: **Companies** → filter the view by owner (you) → **Export**
+   → CSV. The default export columns ("Company name", "Company Domain Name",
+   "Record ID") work as-is — see `owned_accounts.example.csv` for the exact
+   shape expected.
+2. Replace `owned_accounts.csv` at the repo root with your export (upload it
+   via the GitHub web UI, or commit it locally — see note below on keeping
+   this repo private, since it lists your CRM accounts).
+3. In your repo **Settings → Secrets and variables → Actions**, optionally add:
 
    | Secret | Required | Description |
    |---|---|---|
-   | `HUBSPOT_ACCESS_TOKEN` | ✅ | The private-app token from step 1 |
    | `HUBSPOT_PORTAL_ID` | ⬜ | Your HubSpot portal/hub ID (Settings → Account Setup → Account Defaults) — only used to build "View in HubSpot" links in the digest |
 
    It reuses `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` and the
    `EMAIL_*` secrets already set up for the scraper above — no separate
    email setup needed.
-3. Set which HubSpot owner's accounts to watch in `config.yaml` →
-   `account_watch.owner_email` (defaults to `max@campfire.ai`).
 4. The `.github/workflows/account_watch.yml` workflow runs on cron
    `0 */4 * * *` (every 4 hours, alongside the ICP scan) and on-demand via
-   **Actions → Campfire Account Watch → Run workflow**.
-5. Run locally with `python -m src.account_watch_main`.
+   **Actions → Campfire Account Watch → Run workflow**. It reads whatever
+   `owned_accounts.csv` is currently committed — re-export from HubSpot and
+   replace the file on whatever cadence keeps your account list fresh
+   (e.g. weekly); no redeploy needed beyond that.
+5. Run locally with `python -m src.account_watch_main`, or point it at a
+   different export with `--companies-file path/to/export.csv`.
 
 ## Repository layout
 
@@ -142,6 +150,7 @@ CampfireSignalSearch/
 ├── dashboard.py                     # Streamlit triage UI
 ├── main.py                          # thin shim → src.main
 ├── config.example.yaml              # scraper config template (ICP, queries, filters)
+├── owned_accounts.example.csv       # expected shape for Account Watch's HubSpot export
 ├── requirements.txt
 ├── runtime.txt                      # Python 3.11 pin for Streamlit Cloud
 ├── .env.example
@@ -153,7 +162,7 @@ CampfireSignalSearch/
 └── src/
     ├── main.py                      # ICP-scan orchestrator + scheduler + Supabase sync
     ├── account_watch_main.py        # Account Watch orchestrator (HubSpot-owned accounts)
-    ├── hubspot_client.py            # minimal HubSpot REST client (owners + owned companies)
+    ├── account_import.py            # parses a HubSpot companies CSV export
     ├── models.py                    # TriggerEvent dataclass
     ├── database.py                  # Supabase client + upserts
     ├── alerts.py                    # HTML + plain-text email digest (shared by both pipelines)

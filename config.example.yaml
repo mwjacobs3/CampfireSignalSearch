@@ -429,12 +429,14 @@ enrichment:
 # categories (funding, finance_exec_hire, erp_change_signal, compliance_signal).
 # Reuses the same `keywords:` section above and the same `alerts.email`
 # config/credentials — this just adds a second, separately-labeled digest.
-# Requires HUBSPOT_ACCESS_TOKEN (a HubSpot private-app token with
-# crm.objects.companies.read + crm.objects.owners.read scopes) — see README.
+#
+# No HubSpot API credentials needed: the company list comes from a CSV you
+# export from HubSpot (Companies view -> filter by owner -> Export) and
+# replace on whatever cadence you like (e.g. weekly) — see
+# owned_accounts.example.csv for the expected columns.
 account_watch:
   enabled: true
-  owner_email: "max@campfire.ai"    # HubSpot owner whose companies to watch
-  max_companies: 500                # safety cap on how many owned companies to fetch
+  companies_file: "owned_accounts.csv"
   results_per_company: 5            # Google News results considered per company
   max_age_hours: 72                 # drop signals older than this. 0 = no age filter
   min_relevance_score: 0            # accounts are pre-qualified CRM records, so keep everything by default

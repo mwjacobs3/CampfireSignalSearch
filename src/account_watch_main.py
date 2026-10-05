@@ -7,13 +7,23 @@ accounts you already own in HubSpot for the same four Campfire trigger-event
 categories (funding, finance exec hires, ERP-change signals, compliance
 readiness), scoped to just those companies.
 
+The owned-company list comes from a HubSpot CSV export (`account_watch.
+companies_file` in config.yaml, default `owned_accounts.csv`) rather than a
+live HubSpot API connection — see src/account_import.py and
+owned_accounts.example.csv. Re-export and replace that file on whatever
+cadence you like (e.g. weekly); this pipeline just reads whatever's on disk
+at run time, so it stays a fully unattended cron job with no HubSpot
+credentials required.
+
 Usage:
     python -m src.account_watch_main              # run once
+    python -m src.account_watch_main --companies-file path/to/export.csv
 """
 
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -21,21 +31,23 @@ from typing import Any
 
 import yaml
 
+from .account_import import load_owned_companies_csv
 from .alerts import AlertManager
 from .database import SupabaseManager
-from .hubspot_client import HubSpotClient
 from .models import TriggerEvent
 from .scrapers import AccountWatchScraper
 
 
 class AccountWatchMonitor:
 
-    def __init__(self, config_path: str = "config.yaml"):
+    def __init__(self, config_path: str = "config.yaml", companies_file: str = ""):
         self.config = self._load_config(config_path)
         self.aw_config = self.config.get("account_watch", {})
+        self.companies_file = companies_file or self.aw_config.get(
+            "companies_file", "owned_accounts.csv"
+        )
         self.db = SupabaseManager()
         self.alert_manager = AlertManager(self.config)
-        self.hubspot = HubSpotClient()
 
     @staticmethod
     def _load_config(config_path: str) -> dict[str, Any]:
@@ -55,34 +67,23 @@ class AccountWatchMonitor:
             print("  Account Watch disabled in config.yaml (account_watch.enabled: false)")
             return []
 
-        if not self.hubspot.configured:
-            print("  HUBSPOT_ACCESS_TOKEN not set — skipping. See README for setup.")
-            return []
-
         self.db.verify_schema()
 
-        owner_email = self.aw_config.get("owner_email", "")
-        if not owner_email:
-            print("  No account_watch.owner_email configured — skipping.")
-            return []
-
+        portal_id = os.environ.get("HUBSPOT_PORTAL_ID", "")
         try:
-            owner_id = self.hubspot.get_owner_id_by_email(owner_email)
-        except Exception as exc:
-            print(f"  ERROR looking up HubSpot owner '{owner_email}': {exc}")
+            companies = load_owned_companies_csv(self.companies_file, portal_id=portal_id)
+        except FileNotFoundError:
+            print(
+                f"  {self.companies_file} not found — export your owned companies from "
+                "HubSpot (Companies view -> filter by owner -> Export) and save them "
+                f"there. See owned_accounts.example.csv for the expected columns."
+            )
             return []
-        if not owner_id:
-            print(f"  No HubSpot owner found for '{owner_email}' — skipping.")
-            return []
-
-        max_companies = int(self.aw_config.get("max_companies", 500))
-        try:
-            companies = self.hubspot.get_owned_companies(owner_id, max_companies=max_companies)
-        except Exception as exc:
-            print(f"  ERROR fetching owned companies: {exc}")
+        except ValueError as exc:
+            print(f"  ERROR parsing {self.companies_file}: {exc}")
             return []
 
-        print(f"  Owned companies  : {len(companies)} (owner: {owner_email})")
+        print(f"  Owned companies  : {len(companies)} (from {self.companies_file})")
         if not companies:
             return []
 
@@ -154,8 +155,13 @@ class AccountWatchMonitor:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Campfire Account Watch Monitor")
     parser.add_argument("--config", "-c", default="config.yaml")
+    parser.add_argument(
+        "--companies-file",
+        default="",
+        help="Path to the HubSpot companies CSV export (overrides config.yaml)",
+    )
     args = parser.parse_args()
-    AccountWatchMonitor(args.config).run_once()
+    AccountWatchMonitor(args.config, companies_file=args.companies_file).run_once()
 
 
 if __name__ == "__main__":

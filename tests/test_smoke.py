@@ -15,11 +15,11 @@ ROOT = Path(__file__).resolve().parent.parent
 
 def test_source_package_imports() -> None:
     """Every source module imports without side effects (no DB connection at import)."""
+    import src.account_import  # noqa: F401
     import src.account_watch_main  # noqa: F401
     import src.alerts  # noqa: F401
     import src.database  # noqa: F401
     import src.enrichment  # noqa: F401
-    import src.hubspot_client  # noqa: F401
     import src.main  # noqa: F401
     import src.models  # noqa: F401
     from src.scrapers import (  # noqa: F401
@@ -70,10 +70,28 @@ def test_account_watch_scraper_constructs() -> None:
     assert scraper.scrape() == []
 
 
-def test_hubspot_client_unconfigured() -> None:
-    """HubSpotClient reports unconfigured when no access token is present,
-    rather than raising — the Account Watch pipeline uses this to skip
-    cleanly when HUBSPOT_ACCESS_TOKEN isn't set."""
-    from src.hubspot_client import HubSpotClient
+def test_load_owned_companies_csv() -> None:
+    """The bundled example export parses into the scraper's company shape,
+    matching HubSpot's default 'Company name' / 'Company Domain Name' /
+    'Record ID' headers without any renaming."""
+    from src.account_import import load_owned_companies_csv
 
-    assert HubSpotClient(access_token="").configured is False
+    companies = load_owned_companies_csv(
+        str(ROOT / "owned_accounts.example.csv"), portal_id="12345"
+    )
+    assert len(companies) == 2
+    assert companies[0]["name"] == "Acme Robotics"
+    assert companies[0]["domain"] == "acmerobotics.com"
+    assert companies[0]["hubspot_url"] == (
+        "https://app.hubspot.com/contacts/12345/record/0-2/123456789"
+    )
+
+
+def test_load_owned_companies_csv_missing_file() -> None:
+    from src.account_import import load_owned_companies_csv
+
+    try:
+        load_owned_companies_csv(str(ROOT / "does_not_exist.csv"))
+        raise AssertionError("expected FileNotFoundError")
+    except FileNotFoundError:
+        pass

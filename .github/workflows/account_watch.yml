@@ -27,9 +27,11 @@ jobs:
 
       - name: Run Account Watch
         env:
-          # HubSpot — private-app token scoped to companies + owners read
-          HUBSPOT_ACCESS_TOKEN: ${{ secrets.HUBSPOT_ACCESS_TOKEN }}
-          HUBSPOT_PORTAL_ID:    ${{ secrets.HUBSPOT_PORTAL_ID }}
+          # Optional — your HubSpot portal/hub ID, used only to build "View
+          # in HubSpot" links in the digest. No HubSpot API token needed:
+          # the owned-company list comes from owned_accounts.csv, which you
+          # export from HubSpot and commit/replace on your own cadence.
+          HUBSPOT_PORTAL_ID: ${{ secrets.HUBSPOT_PORTAL_ID }}
 
           # Supabase — same project/table as the ICP scan
           SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
